@@ -36,7 +36,14 @@
 
 <body>
     <form>
-        <div class="mx-auto w-full max-w-[800px] bg-white" id="step1">
+        <div class="mx-auto w-full max-w-[800px] bg-white hidden" id="noWebBt">
+            <div class="mb-5">
+                <h1 class="head">Web Bluetooth not available</h1>
+                <p>Your browser does not support Web Bluetooth.</p>
+            </div>
+        </div>
+
+        <div class="mx-auto w-full max-w-[800px] bg-white hidden" id="step1">
             <div class="mb-5">
                 <h1 class="head">Step 1: Pick device</h1>
                 <p>Click the Scan button to search for and select an available Shelly device.</p>
@@ -266,7 +273,15 @@
         const queryStatus = document.getElementById('queryStatus');
         const rpcStatus = document.getElementById('rpcStatus');
 
-        document.getElementById('scan').onclick = async () => {
+        window.addEventListener('load', () => {
+            if (!navigator.bluetooth) {
+                document.getElementById('noWebBt').classList.remove('hidden');
+            } else {
+                document.getElementById('step1').classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('scan').addEventListener('click', async () => {
             document.getElementById('step2').classList.add('hidden');
             document.getElementById('step3').classList.add('hidden');
 
@@ -286,7 +301,7 @@
                 console.error('Error requesting device:', error);
                 return;
             }
-        };
+        });
 
         document.getElementById('query').addEventListener('click', async (event) => {
             event.target.disabled = true;
