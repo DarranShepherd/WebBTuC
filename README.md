@@ -14,6 +14,8 @@ Simple exploration of the Web Bluetooth API. Shelly UUIDs discovered by inspecti
 
 Experiment 2
 ------------
+[Local](https://127.0.0.1:8080/experiment2.html) | [GitHub](https://darranshepherd.co.uk/WebBTuC/experiment2.html) 
+
 Connecting to a Shelly device and making RPC calls as per the Shelly documentation at https://kb.shelly.cloud/knowledge-base/kbsa-communicating-with-shelly-devices-via-bluetoo
 
 Experiment 3

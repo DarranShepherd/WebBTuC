@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>WebBTuC Experiment 2</title>
+    <style type="text/tailwindcss">
+        @layer base {
+            h1 {
+                font-size: var(--text-2xl);
+            }
+            h2 {
+                font-size: var(--text-xl);
+            }
+        }
+        @layer components {
+            .btn-primary {
+                @apply rounded-lg;
+                background-color: var(--color-violet-500);
+                padding-inline: --spacing(5);
+                padding-block: --spacing(2);
+                font-weight: var(--font-weight-semibold);
+                color: var(--color-white);
+                box-shadow: var(--shadow-md);
+                &:hover {
+                    @media (hover: hover) {
+                        background-color: var(--color-violet-700);
+                    }
+                }
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <form>
+        <div class="mx-auto w-full max-w-[800px] bg-white" id="step1">
+            <div class="mb-5">
+                <h1 class="head">Step 1: Pick device</h1>
+                <p>Click the Scan button to search for and select an available Shelly device.</p>
+            </div>
+            <div class="mb-5">
+                <div class="flex flex-col items-center"">
+                    <button id="scan" type="button" class="btn-primary float-right">Scan</button>
+                </div>
+                <div class="hidden">
+                    <div>Name:</div>
+                    <div id="deviceName" class="text-gray-500">No device selected</div>
+                </div>
+            </div>
+        </div>
+        <div class="mx-auto w-full max-w-[800px] bg-white hidden" id="step2">
+            <div class="mb-5">
+                <h1 class="head">Step 2: Get Device Info</h1>
+                <p>Interrogate the selected device for information.</p>
+            </div>
+            <div class="mb-5">
+                <div class="flex flex-col items-center">
+                    <button id="query" type="button" class="btn-primary float-right">Query</button>
+                </div>
+            </div>
+            <div class="mb-5">
+                <div class="flex flex-col items-center">
+                    <p id="queryStatus"/>
+                </div>
+            </div>
+            <div class="mb-5 hidden" id="deviceInfoContainer">
+                <h2 class="head">Device Info</h2>
+                <div class="border-t border-gray-200">
+                    <dl class="md:grid md:grid-cols-2">
+                        <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-gray-500">
+                                Id
+                            </dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" id="idDd"/>
+                        </div>
+                        <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-gray-500">
+                                App
+                            </dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" id="appDd"/>
+                        </div>
+                        <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-gray-500">
+                                Model
+                            </dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" id="modelDd"/>
+                        </div>
+                        <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-gray-500">
+                                Generation
+                            </dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" id="generationDd"/>
+                        </div>
+                        <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-gray-500">
+                                Version
+                            </dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" id="versionDd"/>
+                        </div>
+                        <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-gray-500">
+                                Firmware
+                            </dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" id="firmwareDd" />
+                        </div>
+                        <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-gray-500">
+                                Slot
+                            </dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" id="slotDd" />
+                        </div>
+                        <div class="sm:grid sm:grid-cols-3 sm:gap-4">
+                            <dt class="text-sm font-medium text-gray-500">
+                                Mac
+                            </dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" id="macDd" />
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="mx-auto w-full max-w-[800px] bg-white hidden" id="step3">
+            <div class="mb-5">
+                <h1 class="head">Step 3: RPC</h1>
+                <p>Make arbitrary RPC requests to the Shelly device. See the <a href="https://shelly-api-docs.shelly.cloud/" class="text-violet-500"> Shelly documentation</a> for details.</p>
+            </div>
+            <div class="mb-5 grid grid-cols-2">
+                <div class="p-2">
+                    <label for="request">RPC Request</label>
+                    <textarea id="request" class="w-full h-100 border-1 border-solid resize-none"></textarea>
+                </div>
+                <div class="p-2">
+                    <label for="response">RPC Response</label>
+                    <textarea id="response" class="w-full h-100 border-1 border-solid resize-none"></textarea>
+                </div>
+            </div>
+            <div class="mb-5">
+                <div class="flex flex-col items-center">
+                    <button id="rpc" type="button" class="btn-primary float-right">RPC</button>
+                </div>
+            </div>
+            <div class="mb-5">
+                <div class="flex flex-col items-center">
+                    <p id="rpcStatus" />
+                </div>
+            </div>
+        </div>
+    </form>
+
+
+    <script>
+        const SHELLY_MANUFACTURER_ID = 0x0BA9;
+        const SHELLY_GATT_SERVICE_UUID = "5f6d4f53-5f52-5043-5f53-56435f49445f";
+        const RPC_CHAR_DATA_UUID = "5f6d4f53-5f52-5043-5f64-6174615f5f5f";
+        const RPC_CHAR_TX_CTL_UUID = "5f6d4f53-5f52-5043-5f74-785f63746c5f";
+        const RPC_CHAR_RX_CTL_UUID = "5f6d4f53-5f52-5043-5f72-785f63746c5f";
+
+        const defaultRpcRequest = {
+            "method": "WiFi.GetStatus",
+            "params": {}
+        };
+
+        class ShellyDevice {
+            #statusChangeCallbacks = [];
+            #setStatus(status) {
+                this.#statusChangeCallbacks.forEach(callback => callback(status));
+            }
+
+            constructor(device) {
+                this.device = device;
+                this.name = device.name || device.id || 'No name available';
+            }
+
+            set onStatusChange(callback) {
+                this.#statusChangeCallbacks.push(callback);
+            }
+
+            clearOnStatusChange() { this.#statusChangeCallbacks = []; }
+
+            async rpc(request) {
+                const server = await this.device.gatt.connect();
+                const service = await server.getPrimaryService(SHELLY_GATT_SERVICE_UUID);
+                const data = await service.getCharacteristic(RPC_CHAR_DATA_UUID);
+                const tx = await service.getCharacteristic(RPC_CHAR_TX_CTL_UUID);
+                const rx = await service.getCharacteristic(RPC_CHAR_RX_CTL_UUID);
+
+                const requestId = Math.random().toString(36).substring(2, 15);
+                request.id = requestId;
+                const requestBuffer = new TextEncoder().encode(JSON.stringify(request));
+                const requestBufferLength = requestBuffer.length;
+                // Create 4-byte big-endian integer from requestBufferLength
+                const requestBufferLengthBytes = new ArrayBuffer(4);
+                new DataView(requestBufferLengthBytes).setInt32(0, requestBufferLength, false);
+
+                this.#setStatus("Sending request length...");
+                await tx.writeValue(requestBufferLengthBytes);
+                this.#setStatus("Request length sent");
+                await new Promise(r => setTimeout(r, 1000));
+
+                this.#setStatus("Sending request...");
+                await data.writeValue(requestBuffer);
+                this.#setStatus("Request sent");
+                await new Promise(r => setTimeout(r, 1000));
+
+                for (let i = 0; i < 5; i++) {
+                    const responseJson = await this.#readResponse(rx, data);
+
+                    let response;
+                    try {
+                        response = JSON.parse(responseJson);
+                    } catch (error) {
+                        console.log(responseJson);
+                    }
+
+                    if (response && response.id === requestId) {
+                        return response;
+                    }
+                    console.warn(`Response ID ${response.id} does not match request ID ${requestId}`);
+                    await new Promise(r => setTimeout(r, 1000)); // Wait before retrying
+                }
+            }
+
+            async rpcWithRetries(request, retries = 3) {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        return await this.rpc(request);
+                    } catch (error) {
+                        console.error(`RPC attempt ${i + 1} failed:`, error);
+                        if (i === (retries - 1)) {
+                            throw error;
+                        }
+                        await new Promise(r => setTimeout(r, 1000)); // Wait before retrying
+                    }
+                }
+            }
+
+            async #readResponse(rx, data) {
+                this.#setStatus("Reading response length...");
+                const responseLengthBytes = await rx.readValue();
+                const responseLength = new DataView(responseLengthBytes.buffer).getInt32(0, false);
+                this.#setStatus("Response length received");
+
+                if (responseLength === 0) { return '{}';}
+
+                this.#setStatus("Reading response...");
+                const decoder = new TextDecoder();
+                let responseJson = '';
+                let offset = 0;
+                while (offset < responseLength) {
+                    const chunk = await data.readValue();
+                    responseJson += decoder.decode(chunk);
+                    offset += chunk.length;
+                }
+                this.#setStatus("Response received");
+
+                return responseJson;
+            }
+        }
+
+        let device;
+        let shelly;
+        const queryStatus = document.getElementById('queryStatus');
+        const rpcStatus = document.getElementById('rpcStatus');
+
+        document.getElementById('scan').onclick = async () => {
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.add('hidden');
+
+            try {
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ manufacturerData: [{ companyIdentifier: SHELLY_MANUFACTURER_ID }] }],
+                    optionalServices: [SHELLY_GATT_SERVICE_UUID]
+                });
+                shelly = new ShellyDevice(device);
+
+                const deviceName = document.getElementById('deviceName');
+                deviceName.innerText = shelly.name;
+                deviceName.parentElement.classList.remove('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error requesting device:', error);
+                return;
+            }
+        };
+
+        document.getElementById('query').addEventListener('click', async (event) => {
+            event.target.disabled = true;
+            document.getElementById('step3').classList.add('hidden');
+
+            queryStatus.classList.remove('text-red-500');
+            const deviceInfoContainer = document.getElementById('deviceInfoContainer');
+            deviceInfoContainer.classList.add('hidden');
+
+            try {
+                shelly.onStatusChange = (status) => queryStatus.innerText = status;
+                queryStatus.innerText = "Connecting to device...";
+
+                const request = {
+                    "method": "Shelly.GetDeviceInfo",
+                    "params": {}
+                };
+                const response = await shelly.rpcWithRetries(request);
+
+                document.getElementById('idDd').innerText = response.result.id;
+                document.getElementById('appDd').innerText = response.result.app;
+                document.getElementById('modelDd').innerText = response.result.model;
+                document.getElementById('generationDd').innerText = response.result.gen;
+                document.getElementById('versionDd').innerText = response.result.ver;
+                document.getElementById('firmwareDd').innerText = response.result.fw_id;
+                document.getElementById('slotDd').innerText = response.result.slot;
+                document.getElementById('macDd').innerText = response.result.mac;
+
+                deviceInfoContainer.classList.remove('hidden');
+
+                queryStatus.innerText = '';
+
+                document.getElementById('request').value = JSON.stringify(defaultRpcRequest, null, 2);
+                document.getElementById('step3').classList.remove('hidden');
+            } catch (error) {
+                console.error(error);
+                queryStatus.innerText = error.message;
+                queryStatus.classList.add('text-red-500');
+            } finally {
+                shelly?.clearOnStatusChange();
+                event.target.disabled = false;
+            }
+        });
+
+        document.getElementById('rpc').addEventListener('click', async (event) => {
+            event.target.disabled = true;
+
+            rpcStatus.classList.remove('text-red-500');
+
+            try {
+                shelly.onStatusChange = (status) => rpcStatus.innerText = status;
+                rpcStatus.innerText = "Connecting to device...";
+
+                const request = JSON.parse(document.getElementById('request').value);
+                const response = await shelly.rpcWithRetries(request);
+                document.getElementById('response').value = JSON.stringify(response, null, 2);
+
+                rpcStatus.innerText = '';
+
+            } catch (error) {
+                console.error(error);
+                rpcStatus.innerText = error.message;
+                rpcStatus.classList.add('text-red-500');
+            } finally {
+                shelly?.clearOnStatusChange();
+                event.target.disabled = false;
+            }
+        });
+
+
+    </script>
+</body>
+
+</html>
