@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Bluetooth Microcontroller Registration</title>
+</head>
+<body>
+    <div>
+    <button id="requestDevice">Request Device</button>
+    </div>
+    <div>
+        <textarea id="textarea" style="width:100%;height:500px;"></textarea>
+    </div>
+    <script>
+        document.getElementById('requestDevice').onclick = async () => {
+            const ta = document.getElementById('textarea');
+            ta.value = '';
+
+            function output (text) {
+                if (typeof text !== 'string') {
+                    text = JSON.stringify(text, null, 2);
+                }
+                console.log(text);
+                ta.value += text + '\n';
+            }
+            // Check if the browser supports Web Bluetooth
+            if (!navigator.bluetooth) {
+                output('Web Bluetooth is not supported in this browser.');
+                return;
+            }
+
+            let device, server;
+            try {
+                // Request a Bluetooth device
+                output('Requesting Bluetooth device...');
+                device = await navigator.bluetooth.requestDevice({ filters: [{ manufacturerData: [{ companyIdentifier: 0x0BA9 }] }], optionalServices: ['5f6d4f53-5f52-5043-5f53-56435f49445f'] });
+                output({ id: device.id, name: device.name });
+
+                output('Connecting to GATT server...');
+                server = await device.gatt.connect();
+                output({connected: server.connected});
+
+                output('Getting Primary Service...');
+                const service = await server.getPrimaryService('5f6d4f53-5f52-5043-5f53-56435f49445f');
+                output({uuid: service.uuid, isPrimary: service.isPrimary});
+
+                output('Getting Characteristic...');
+                const characteristic = await service.getCharacteristic('5f6d4f53-5f52-5043-5f72-785f63746c5f');
+                output({uuid: characteristic.uuid, properties : characteristic.properties, value: characteristic.value});
+
+                output('Reading Characteristic value...');
+                const value = await characteristic.readValue();
+                output({value: value, valueAsString: new TextDecoder().decode(value)});
+            } catch (error) {
+                output('Error connecting to GATT server:', error);
+            } finally {
+                if (server && server.connected) {
+                    server.disconnect();
+                    output('Disconnected from GATT server');
+                }
+            }
+        };
+    </script>
+</body>
+</html>
