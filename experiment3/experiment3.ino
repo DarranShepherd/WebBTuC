@@ -1,6 +1,7 @@
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
+#include <BLE2902.h>
 #include <WiFi.h>
 #include <esp_mac.h>
 
@@ -128,8 +129,9 @@ void setup() {
 
   pCharIpAddr = pService->createCharacteristic(
                                          WIFI_CHARACTERISTIC_UUID_IPADDR,
-                                         BLECharacteristic::PROPERTY_READ
+                                         BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
                                       );
+  pCharIpAddr->addDescriptor(new BLE2902());
 
   pCharSsid = pService->createCharacteristic(WIFI_CHARACTERISTIC_UUID_SSID, BLECharacteristic::PROPERTY_WRITE);
   pCharPassword = pService->createCharacteristic(WIFI_CHARACTERISTIC_UUID_PASSWORD, BLECharacteristic::PROPERTY_WRITE);
@@ -162,8 +164,10 @@ void loop() {
 
   if (!wifiConnected && WiFi.status() == WL_CONNECTED)
   {
+    Serial.printf("WiFi connected %s", WiFi.localIP().toString());
     wifiConnected = true;
     pCharIpAddr->setValue(WiFi.localIP().toString());
+    pCharIpAddr->notify();
     server.begin();
   }
 

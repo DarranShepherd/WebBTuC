@@ -191,36 +191,29 @@
             try {
                 server = await device.gatt.connect();
                 const service = await server.getPrimaryService(WIFI_SERVICE_UUID);
+
+                const ipAddrCharacteristic = await service.getCharacteristic(WIFI_CHARACTERISTIC_UUID_IPADDR);
+                await ipAddrCharacteristic.startNotifications();
+                ipAddrCharacteristic.addEventListener('characteristicvaluechanged', async (event) => {
+                    const ipAddrValue = event.target.value;
+                    const ipAddr = new TextDecoder('utf-8').decode(ipAddrValue.buffer);
+
+                    document.getElementById('step4').classList.remove('hidden');
+                    document.getElementById('ipAddr').innerText = ipAddr;
+
+                    let response = await fetch(`http://${ipAddr}/`, { targetAddressSpace: "private" });
+                    let obj = await response.json();
+                    document.getElementById('response').innerText = JSON.stringify(obj, null, 2);
+                });
+
                 const ssidCharacteristic = await service.getCharacteristic(WIFI_CHARACTERISTIC_UUID_SSID);
                 const passwordCharacteristic = await service.getCharacteristic(WIFI_CHARACTERISTIC_UUID_PASSWORD);
 
                 ssidCharacteristic.writeValueWithoutResponse(new TextEncoder('utf-8').encode(document.getElementById('networks').value));
                 passwordCharacteristic.writeValueWithoutResponse(new TextEncoder('utf-8').encode(document.getElementById('password').value));
-
-                const ipAddrCharacteristic = await service.getCharacteristic(WIFI_CHARACTERISTIC_UUID_IPADDR);
-                let ipAddrValue = await ipAddrCharacteristic.readValue();
-                while (ipAddrValue.byteLength === 0) {
-                    console.log('Waiting for IP address...');
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    ipAddrValue = await ipAddrCharacteristic.readValue();
-                }
-                const ipAddr = new TextDecoder('utf-8').decode(ipAddrValue.buffer);
-
-                document.getElementById('step4').classList.remove('hidden');
-                document.getElementById('ipAddr').innerText = ipAddr;
-
-                let response = await fetch(`http://${ipAddr}/`, { targetAddressSpace: "private" });
-                let obj = await response.json();
-                document.getElementById('response').innerText = JSON.stringify(obj, null, 2);
             } catch (error) {
                 console.error('Error requesting device:', error);
                 return;
-            }
-            finally {
-                if (server && server.connected) {
-                    console.log('Disconnecting from GATT server...');
-                    server.disconnect();
-                }
             }
         });
     </script>
