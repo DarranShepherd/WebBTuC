@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>WebBTuC Experiment 3</title>
+    <style type="text/tailwindcss">
+        @layer base {
+            h1 {
+                font-size: var(--text-2xl);
+            }
+            h2 {
+                font-size: var(--text-xl);
+            }
+        }
+        @layer components {
+            .btn-primary {
+                @apply rounded-lg;
+                background-color: var(--color-violet-500);
+                padding-inline: --spacing(5);
+                padding-block: --spacing(2);
+                font-weight: var(--font-weight-semibold);
+                color: var(--color-white);
+                box-shadow: var(--shadow-md);
+                &:hover {
+                    @media (hover: hover) {
+                        background-color: var(--color-violet-700);
+                    }
+                }
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <form>
+        <div class="mx-auto w-full max-w-[800px] bg-white hidden" id="noWebBt">
+            <div class="mb-5">
+                <h1 class="head">Web Bluetooth not available</h1>
+                <p>Your browser does not support Web Bluetooth.</p>
+            </div>
+        </div>
+
+        <div class="mx-auto w-full max-w-[800px] bg-white hidden" id="step1">
+            <div class="mb-5">
+                <h1 class="head">Step 1: Pick device</h1>
+                <p>Click the Search button to search for and select an available Shelly device.</p>
+            </div>
+            <div class="mb-5">
+                <div class="flex flex-col items-center"">
+                    <button id="search" type="button" class="btn-primary float-right">Search</button>
+                </div>
+                <div class="hidden">
+                    <div>Name:</div>
+                    <div id="deviceName" class="text-gray-500">No device selected</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mx-auto w-full max-w-[800px] bg-white hidden" id="step2">
+            <div class="mb-5">
+                <h1 class="head">Step 2: Scan for available WiFi networks</h1>
+            </div>
+            <div class="mb-5">
+                <div class="flex flex-col items-center"">
+                    <button id="scan" type="button" class="btn-primary float-right">Scan</button>
+                </div>
+            </div>
+            <div class="mb-5 hidden" id="searching">
+                Searching...
+            </div>
+        </div>
+
+        <div class="mx-auto w-full max-w-[800px] bg-white hidden" id="step3">
+            <div class="mb-5">
+                <h1 class="head">Step 3: Connect to WiFi</h1>
+            </div>
+            <div class="mb-5 hidden" id="step3inputs">
+                <div>
+                    <label for="networks">Network SSID:</label>
+                    <select title="networks" id="networks"
+                        class="border border-gray-300 rounded-md p-2 w-full"></select>
+                </div>
+                <div>
+                    <label for="password">Password:</label>
+                    <input id="password" type="password" class="border border-gray-300 rounded-md p-2 w-full"
+                        placeholder="Enter WiFi password" required />
+                </div>
+                <div class="flex flex-col items-center"">
+                    <button id="connect" type="button" class="btn-primary float-right">Connect</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="mx-auto w-full max-w-[800px] bg-white hidden" id="step4">
+            <div class="mb-5">
+                <h1 class="head">Step 4: Connected</h1>
+            </div>
+            <div class="mb-5">
+                IP Address of device is <span id="ipAddr"></span>
+            </div>
+            <div class="mb-5">
+                <pre id="response"></pre>
+            </div>
+        </div>
+    </form>
+
+
+    <script>
+        const WIFI_SERVICE_UUID = "f906af59-6e7a-425a-9483-5b3b114e7e1e";
+        const WIFI_CHARACTERISTIC_UUID_SCAN = "552ed7bb-704e-4b45-a566-628bc1cfdfd3";
+        const WIFI_CHARACTERISTIC_UUID_SCAN_0 = "a82e4198-1784-47d2-9d67-127ae09f99d";
+        const WIFI_CHARACTERISTIC_UUID_IPADDR = "7795f5ce-cbf2-4d1e-a51b-b13006dbea2e";
+        const WIFI_CHARACTERISTIC_UUID_SSID = "be5bd74b-09ec-4759-9d7b-cde46f1ecbe0";
+        const WIFI_CHARACTERISTIC_UUID_PASSWORD = "a376c353-31f5-42ee-846a-d4551d3b9c56";
+
+
+        let device;
+        let shelly;
+
+        window.addEventListener('load', () => {
+            if (!navigator.bluetooth) {
+                document.getElementById('noWebBt').classList.remove('hidden');
+            } else {
+                document.getElementById('step1').classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('search').addEventListener('click', async () => {
+            let server;
+            try {
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [WIFI_SERVICE_UUID] }],
+                });
+
+                const deviceName = document.getElementById('deviceName');
+                deviceName.innerText = device.name;
+                deviceName.parentElement.classList.remove('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error requesting device:', error);
+                return;
+            }
+            finally {
+                if (server && server.connected) {
+                    console.log('Disconnecting from GATT server...');
+                    server.disconnect();
+                }
+            }
+        });
+        document.getElementById('scan').addEventListener('click', async () => {
+            let server;
+            try {
+                document.getElementById('searching').classList.remove('hidden');
+                server = await device.gatt.connect();
+                const service = await server.getPrimaryService(WIFI_SERVICE_UUID);
+                const scanCharacteristic = await service.getCharacteristic(WIFI_CHARACTERISTIC_UUID_SCAN);
+                await scanCharacteristic.writeValueWithResponse(new Uint8Array([1]));
+                const scanCountValue = await scanCharacteristic.readValue();
+                const scanCount = scanCountValue.getInt32(0, true);
+
+                const networksList = document.getElementById('networks');
+                networksList.innerHTML = '';
+                for (let i = 0; i < scanCount; i++) {
+                    const ssidCharacteristic = await service.getCharacteristic(WIFI_CHARACTERISTIC_UUID_SCAN_0 + i);
+                    const ssidValue = await ssidCharacteristic.readValue();
+                    const ssid = new TextDecoder('utf-8').decode(ssidValue.buffer);
+                    const ssidElement = document.createElement('option');
+                    ssidElement.innerText = ssid;
+                    networksList.appendChild(ssidElement);
+                }
+                document.getElementById('searching').classList.add('hidden');
+                document.getElementById('step3').classList.remove('hidden');
+                document.getElementById('step3inputs').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error requesting device:', error);
+                return;
+            }
+            finally {
+                if (server && server.connected) {
+                    console.log('Disconnecting from GATT server...');
+                    server.disconnect();
+                }
+            }
+        });
+        document.getElementById('connect').addEventListener('click', async () => {
+            let server;
+            try {
+                server = await device.gatt.connect();
+                const service = await server.getPrimaryService(WIFI_SERVICE_UUID);
+                const ssidCharacteristic = await service.getCharacteristic(WIFI_CHARACTERISTIC_UUID_SSID);
+                const passwordCharacteristic = await service.getCharacteristic(WIFI_CHARACTERISTIC_UUID_PASSWORD);
+
+                ssidCharacteristic.writeValueWithoutResponse(new TextEncoder('utf-8').encode(document.getElementById('networks').value));
+                passwordCharacteristic.writeValueWithoutResponse(new TextEncoder('utf-8').encode(document.getElementById('password').value));
+
+                const ipAddrCharacteristic = await service.getCharacteristic(WIFI_CHARACTERISTIC_UUID_IPADDR);
+                let ipAddrValue = await ipAddrCharacteristic.readValue();
+                while (ipAddrValue.byteLength === 0) {
+                    console.log('Waiting for IP address...');
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    ipAddrValue = await ipAddrCharacteristic.readValue();
+                }
+                const ipAddr = new TextDecoder('utf-8').decode(ipAddrValue.buffer);
+
+                document.getElementById('step4').classList.remove('hidden');
+                document.getElementById('ipAddr').innerText = ipAddr;
+
+                let response = await fetch(`http://${ipAddr}/`, { targetAddressSpace: "private" });
+                let obj = await response.json();
+                document.getElementById('response').innerText = JSON.stringify(obj, null, 2);
+            } catch (error) {
+                console.error('Error requesting device:', error);
+                return;
+            }
+            finally {
+                if (server && server.connected) {
+                    console.log('Disconnecting from GATT server...');
+                    server.disconnect();
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

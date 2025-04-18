@@ -20,8 +20,10 @@ Connecting to a Shelly device and making RPC calls as per the Shelly documentati
 
 Experiment 3
 ------------
-A simple Arduino sketch that advertises, has writeable characteristics for SSID and Password. Experiment page allows entering these and writing them to the characteristic, then subscribes to connected / IP address characteristics and displays status.
+[Local](https://127.0.0.1:8080/experiment3.html) | [GitHub](https://darranshepherd.co.uk/WebBTuC/experiment3.html) | [Arduino Sketch](https://github.com/DarranShepherd/WebBTuC/blob/main/experiment3/experiment3.ino)
+
+A simple Arduino sketch that advertises a BLE service with charateristics that support a basic API to scan for networks, then set the selected network and password. The experiment page allows entering these and writing them to the characteristic, then retrieves the IP address from the characteristic, displays status and makes an fetch request to an API served by the sketch.
 
 Experiment 4
 ------------
-Onboarding as in Experiment 3, sketch also launches an HTTP server with a very simple JSON API. Once connected, the page allows calling the API via XHR. Read sensor ([internal temperature](https://forum.arduino.cc/t/esp32-s2-built-in-temperature-sensor/1237935)?), write pin (LED).
+A more polished experiment refining Experiment 3 with more nicely factored code and error handling. Furthering the example with an API implementation to read a sensor ([internal temperature](https://forum.arduino.cc/t/esp32-s2-built-in-temperature-sensor/1237935)?) and toggle a pin (LED).
